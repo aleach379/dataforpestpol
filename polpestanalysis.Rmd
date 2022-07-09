@@ -1,0 +1,106 @@
+---
+title: "Pollination and pest interactions"
+output: html_document
+---
+
+```{r}
+library(car)
+library(multcomp)
+library(lme4)
+library(emmeans)
+library(blmeco)
+library(MuMIn)
+library(multcompView)
+library(DHARMa)
+library(glmmTMB)
+
+overdisp_fun <- function(model) {
+    rdf <- df.residual(model)
+    rp <- residuals(model,type="pearson")
+    Pearson.chisq <- sum(rp^2)
+    prat <- Pearson.chisq/rdf
+    pval <- pchisq(Pearson.chisq, df=rdf, lower.tail=FALSE)
+    c(chisq=Pearson.chisq,ratio=prat,rdf=rdf,p=pval)
+}
+```
+
+
+```{r}
+weight21 <- read.csv("~/Ashleys Documents/1. CURRENT PROJECTS/POLLINATOR/Summer 2021/Trials/final data/weight21.csv", na.strings=".")
+weight21$rep=as.factor(weight21$rep)
+weight21$beet=as.numeric(weight21$beet)
+weight21$poll=as.factor(weight21$poll)
+
+weightlm21=lmer(avgwei~poll*beet + (1|rep), data = weight21)
+qqnorm(residuals(weightlm21)); qqline(resid(weightlm21))
+Anova(weightlm21, type = "III")
+
+allyield21=lmer(sqrt(totalwe)~poll*beet + (1|rep), data = weight21)
+qqnorm(residuals(allyield21)); qqline(resid(allyield21))
+Anova(allyield21, type = "III")
+
+set21 <- read.csv("~/Ashleys Documents/1. CURRENT PROJECTS/POLLINATOR/Summer 2021/Trials/final data/set21.csv", na.strings=".")
+set21$rep=as.factor(set21$rep)
+set21$beet=as.numeric(set21$beet)
+set21$poll=as.factor(set21$poll)
+
+setglmer21= glmer((cbind(set,fail))~poll*beet + (1|rep), family = binomial, data = set21) 
+dispersion_glmer(setglm21) # technically the best way to do it since it was out of 100, thus binomial....but I'm open to poisson as damage could be perceived as a "rare event"
+Anova(setglmer21, type="III")
+plot(DHARMa::simulateResiduals(setglmer21)) #looks like we have some issues with underdispersion and singularity. Let me drop the mixed effects. 
+
+setglm21= glm((cbind(set,fail))~poll*beet +rep, family = binomial, data = set21) 
+summary(setglm21) # technically the best way to do it since it was out of 100, thus binomial....but I'm open to poisson as damage could be perceived as a "rare event"
+Anova(setglm21, type="III")
+
+````
+
+```{r}
+weight20 <- read.csv("~/Ashleys Documents/1. CURRENT PROJECTS/POLLINATOR/Summer 2021/Trials/final data/weight20.csv", na.strings=".")
+weight20$rep=as.factor(weight20$rep)
+weight20$poll=as.factor(weight20$poll)
+
+allyield20=lmer(sqrt(totalwe)~poll+ (1|rep), data = weight20)
+qqnorm(residuals(allyield20)); qqline(resid(allyield20))
+Anova(allyield20)
+
+set20 <- read.csv("~/Ashleys Documents/1. CURRENT PROJECTS/POLLINATOR/Summer 2021/Trials/final data/set20.csv", na.strings=".")
+set20$rep=as.factor(set20$rep)
+set20$poll=as.factor(set20$poll)
+
+setglmer20= glmer((cbind(set,fail))~poll + (1|rep), family = binomial, data = set20) 
+dispersion_glmer(setglmer20) # technically the best way to do it since it was out of 100, thus binomial....but I'm open to poisson as damage could be perceived as a "rare event"
+Anova(setglmer20) 
+plot(DHARMa::simulateResiduals(setglmer20)) #looks like we have some issues with underdispersion and singularity. Let me drop the mixed effects. 
+
+setglm20= glm((cbind(set,fail))~poll +rep, family = binomial, data = set20) 
+summary(setglm20) # technically the best way to do it since it was out of 100, thus binomial....but I'm open to poisson as damage could be perceived as a "rare event"
+Anova(setglm20)
+
+````
+
+
+````{r}
+
+aftercheck <- read.csv("~/Ashleys Documents/1. CURRENT PROJECTS/POLLINATOR/Summer 2021/Trials/aftercheck.csv")
+aftercheck$rep=as.factor(aftercheck$rep)
+aftercheck$infest=as.factor(aftercheck$infest)
+
+beetdam= glmer((cbind(damage,100))~infest + (1|rep), family = binomial, data = aftercheck) 
+summary(beetdam)
+dispersion_glmer(beetdam)
+Anova(beetdam, type = "II")
+
+beetnum=glmer.nb(num~infest + (1|rep), family = binomial, data = aftercheck) 
+summary(beetnum)
+dispersion_glmer(beetdam)
+Anova(beetnum)
+
+rootz=lmer(root~infest+ (1|rep), data = simp)
+summary(rootz)
+qqnorm(residuals(rootz)); qqline(resid(rootz))
+Anova(rootz)
+
+```
+
+
